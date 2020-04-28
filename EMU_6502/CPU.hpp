@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Operations.hpp"
-#include "MemoryInterface.h"
+#include "MemoryInterface.hpp"
 #include <cstdint>
 
 typedef enum Flag

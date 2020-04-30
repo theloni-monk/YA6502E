@@ -1,8 +1,8 @@
 // EMU_6502.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
+#include "Operations.hpp"
+#include "CPU.hpp"
 #include <iostream>
-
 int main()
 {
     std::cout << "Hello World!\n"; 

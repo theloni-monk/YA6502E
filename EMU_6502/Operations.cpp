@@ -76,7 +76,7 @@ void PUSH(CPU_6502* c, int8_t operand) {
 	uint16_t address = 0x0100 | stackVal;
 	//0x0100 is hardcoded as stack page
 	//lives in 0x0100 to 0x01FF page of mem
-	c->addressSpace[address] = operand;
+	c->write(address, operand);
 	uint8_t newStackVal = stackVal - 1;
 	c->regs[STACK] = newStackVal;
 }
@@ -89,14 +89,13 @@ char PULL(CPU_6502* c) {
 	//0x0100 is hardcoded as stack page
 	//lives in 0x0100 to 0x01FF page of mem
 	uint16_t address = 0x0100 | newStackVal;
-	return c->addressSpace[address];
+	return c->read(address);
 }
 
 /* OPCODE IMPLEMENTATIONS */ //TODO: WRITEME all opcodes
 // Add with carry: adds memory value with accumulator 
 std::function<void(CPU_6502* c, op_code_params o)> adc = [](CPU_6502 *c, op_code_params o) -> void
 {
-
 	int8_t carry = getFlag(c, CARRY);
 	int8_t accum = c->regs[ACCUM];
 	int8_t operand = o.operand;
@@ -140,6 +139,7 @@ std::function<void(CPU_6502* c, op_code_params o)> and_ = [](CPU_6502 * c, op_co
 	c->regs[ACCUM] = res;
 };
 
+// Arithmetic shift left
 std::function<void(CPU_6502* c, op_code_params o)> asl = [](CPU_6502 * c, op_code_params o) -> void
 {
 	int8_t operand = o.operand;
@@ -151,48 +151,79 @@ std::function<void(CPU_6502* c, op_code_params o)> asl = [](CPU_6502 * c, op_cod
 
 	if(o.mode == Accum)
 	{
-		c->regs[ACCUM] = res;
+		c->regs[ACCUM] = resByte;
 	}
 	else
 	{
-		c->addressSpace[o.address] = res;
+		c->write(o.address, resByte);
 	}
 
 };
 
+//branch if carry clear
 std::function<void(CPU_6502* c, op_code_params o)> bcc = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if(!getFlag(c, CARRY))
+	{
+		c->Pc = o.address;
+
+		//add cycles
+	}
 };
 
+//branch if carry set
 std::function<void(CPU_6502* c, op_code_params o)> bcs = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if(getFlag(c, CARRY))
+	{
+		c->Pc = o.address;
+	}
 };
 
+// Branch if equals aka branch if zero flag
 std::function<void(CPU_6502* c, op_code_params o)> beq = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if(getFlag(c, ZERO))
+	{
+		c->Pc = o.address;
+	}
 };
 
+// test bits in memory with accumulator
 std::function<void(CPU_6502* c, op_code_params o)> bit = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	int8_t src = o.operand;
+	int8_t accum = c->regs[ACCUM];
+	setFlag(c, OVRFLW, (src & 0x40) ? 1 : 0); // get 6th bit of src
+	setFlag(c, NEGATIVE, (src & 0x80) ? 1 : 0); // get 7th bit of src
+	setFlag(c, ZERO, (src& accum) ? 0 : 1);
 };
 
+// branch if minus
 std::function<void(CPU_6502* c, op_code_params o)> bmi = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if (!getFlag(c, NEGATIVE))
+	{
+		c->Pc = o.address;
+	}
 };
 
+// branch if not equal aka zero
 std::function<void(CPU_6502* c, op_code_params o)> bne = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if (!getFlag(c, ZERO))
+	{
+		c->Pc = o.address;
+	}
 };
 
+//branch if result plus
 std::function<void(CPU_6502* c, op_code_params o)> bpl = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if (!getFlag(c, NEGATIVE))
+	{
+		c->Pc = o.address;
+	}
 };
 
 std::function<void(CPU_6502* c, op_code_params o)> brk = [](CPU_6502 * c, op_code_params o) -> void
@@ -200,21 +231,31 @@ std::function<void(CPU_6502* c, op_code_params o)> brk = [](CPU_6502 * c, op_cod
 	//TODO
 };
 
+// branch if overflow clear
 std::function<void(CPU_6502* c, op_code_params o)> bvc = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if (!getFlag(c, OVRFLW))
+	{
+		c->Pc = o.address;
+	}
 };
 
+// branch if overflow set
 std::function<void(CPU_6502* c, op_code_params o)> bvs = [](CPU_6502 * c, op_code_params o) -> void
 {
-	//TODO
+	if (getFlag(c, OVRFLW))
+	{
+		c->Pc = o.address;
+	}
 };
 
+// clear carry flag
 std::function<void(CPU_6502* c, op_code_params o)> clc = [](CPU_6502 * c, op_code_params o) -> void
 {
 	//TODO
 };
 
+// clear decimal mode
 std::function<void(CPU_6502* c, op_code_params o)> cld = [](CPU_6502 * c, op_code_params o) -> void
 {
 	//TODO
@@ -229,6 +270,7 @@ std::function<void(CPU_6502* c, op_code_params o)> clv = [](CPU_6502 * c, op_cod
 {
 	//TODO
 };
+
 
 std::function<void(CPU_6502* c, op_code_params o)> cmp = [](CPU_6502 * c, op_code_params o) -> void
 {

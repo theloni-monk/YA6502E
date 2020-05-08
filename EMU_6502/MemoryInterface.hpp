@@ -9,5 +9,6 @@ public:
 	virtual unsigned char read(uint16_t address);
 	virtual void write(uint16_t address, char byte);
 
-	virtual ~MemoryInterface; //FIXME
+	MemoryInterface(unsigned char* mem_ptr) { this->addressSpace = mem_ptr; };
+	~MemoryInterface() { delete addressSpace; };
 };

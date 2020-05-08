@@ -3,18 +3,17 @@
 
 //TODO: implement reads and writes through memoryinterface
 
-CPU_6502::CPU_6502()
+CPU_6502::CPU_6502(unsigned char* mem_ptr):MemoryInterface(mem_ptr)
 {
 	this->regs = new unsigned char[5];
 	this->regs[STACK] = 0x0100;
-	this->addressSpace = new unsigned char[65532];
 	this->Pc = 0x0000;
 }
 CPU_6502::~CPU_6502()
 {
 	delete this->addressSpace;
 	delete this->regs;
-	delete this;
+	//delete this;
 }
 
 

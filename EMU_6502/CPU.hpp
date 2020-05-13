@@ -5,12 +5,12 @@
 
 typedef enum Flag
 {
-	UNUSED,
 	CARRY,
 	ZERO,
 	IRQ_DISABLE,
 	DECIMAL_MODE,
 	BRK_COMMAND,
+	UNUSED,
 	OVRFLW, //OVERFLOW is a reserved word in c++
 	NEGATIVE
 } flag_t;
@@ -37,7 +37,7 @@ public:
 	unsigned char* regs; // registers
 	char16_t Pc; // program counter
 	
-	CPU_6502();
+	CPU_6502(unsigned char* mem_ptr);
 
 	~CPU_6502();
 

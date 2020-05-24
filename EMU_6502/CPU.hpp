@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "Operations.hpp"
+
 #include "MemoryInterface.hpp"
+#include "Operations.hpp"
 #include <cstdint>
 
 typedef enum Flag
@@ -36,14 +37,15 @@ public:
 
 	unsigned char* regs; // registers
 	char16_t Pc; // program counter
+	uint64_t cycles; // TODO: implement cycle counting
 	
 	CPU_6502(unsigned char* mem_ptr);
 
 	~CPU_6502();
 
-	unsigned char read(uint16_t address) override;
+	unsigned char read(uint16_t address);
 
-	void write(uint16_t address, char byte) override;
+	void write(uint16_t address, char byte);
 
 	// Derives opcode params based on opcode fetched using PC, returns via reference
 	void fetch(op_code_t&, op_code_params_t&);

@@ -43,9 +43,6 @@ public:
 
 	~CPU_6502();
 
-	unsigned char read(uint16_t address);
-
-	void write(uint16_t address, char byte);
 
 	// Derives opcode params based on opcode fetched using PC, returns via reference
 	void fetch(op_code_t&, op_code_params_t&);

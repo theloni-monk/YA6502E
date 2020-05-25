@@ -1,14 +1,16 @@
 #pragma once
 #include <cstdint>
 
+#include "MemoryMapper.h"
+
 class MemoryInterface
 {
 public:
-	unsigned char* addressSpace;
+	MemoryMapper map;
 	
-	virtual unsigned char read(uint16_t address) { return addressSpace[address]; };
-	virtual void write(uint16_t address, char byte) { addressSpace[address] = byte; };
+	char read(uint16_t address) { return map.read(address); };
+	void write(uint16_t address, char byte) { map.write(address, byte); };
 
-	MemoryInterface(unsigned char* mem_ptr) { this->addressSpace = mem_ptr; };
+	MemoryInterface(MemoryMapper m) { this->map = m; };
 	//virtual ~MemoryInterface() { delete addressSpace; };
 };

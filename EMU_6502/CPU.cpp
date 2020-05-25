@@ -13,20 +13,8 @@ CPU_6502::CPU_6502(unsigned char* mem_ptr):MemoryInterface(mem_ptr)
 
 CPU_6502::~CPU_6502()
 {
-	delete this->addressSpace;
 	delete this->regs;
 	//delete this;
-}
-
-
-unsigned char CPU_6502::read(uint16_t address)
-{
-	return this->addressSpace[address]; // TODO: implement memory mapper
-}
-
-void CPU_6502::write(uint16_t address, char byte)
-{
-	this->addressSpace[address] = byte;
 }
 
 
@@ -37,9 +25,7 @@ void CPU_6502::reset(uint16_t PC_start = 0)
 	this->regs = new unsigned char[5];
 	this->regs[STACK] = 0x0100;
 
-	//FIXME not sure ab this one chief
-	delete this->addressSpace;
-	this->addressSpace = new unsigned char[65532];
+	//FIXME: reset memory mapper maybe?
 	
 	this->Pc = PC_start;
 }
@@ -47,10 +33,11 @@ void CPU_6502::reset(uint16_t PC_start = 0)
 // helper struct factory
 op_code_params_t makeParams(unsigned char operand, char16_t addr, addressing_mode_t addrMode)
 {
-	op_code_params o;
+	op_code_params_t o;
 	o.address = addr;
 	o.operand = operand;
 	o.mode = addrMode;
+	
 	return o;
 }
 // Derives opcode params based on opcode fetched using PC, returns via reference
@@ -109,7 +96,7 @@ void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 			break;
 		case IMM:
 			address = this->Pc + 1;
-			operand = this->read(address];
+			operand = this->read(address);
 			op_params = makeParams(operand, address, mode);
 			break;
 		case Implied:
@@ -193,7 +180,7 @@ void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 void CPU_6502::execute(op_code_t op, op_code_params_t params)
 {
 	opcode_to_func[op](this, &params);
-	this->Pc += instructionSizes[params.instructionSize];// go to next opcode
+	this->Pc += instructionSizes[params.instructionSize]; // go to next opcode
 	// TODO: count cycles
 }
 

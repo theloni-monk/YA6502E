@@ -7,6 +7,11 @@ private:
 	char* addressSpace; // can't be directly modified
 
 public:
+	MemoryMapper()
+	{
+		addressSpace = new char[65536]; // children might not generate actual addressSpace in memory
+	};
+	
 	MemoryMapper(uint32_t addrSpaceSize)
 	{
 		addressSpace = new char[addrSpaceSize]; // children might not generate actual addressSpace in memory
@@ -23,9 +28,11 @@ public:
 		return ((addressSpace[address] << 8) | addressSpace[address + 1]);
 	};
 	
-	virtual void write(uint16_t address, char byte)
+	virtual bool write(uint16_t address, char byte)
 	{
+		if (address > sizeof(addressSpace)) return false;
 		addressSpace[address] = byte;
+		return true;
 	};
 
 	virtual bool writeArray(uint16_t startAddress, char* bytes)

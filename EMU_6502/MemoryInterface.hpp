@@ -6,11 +6,12 @@
 class MemoryInterface
 {
 public:
-	MemoryMapper map;
+	MemoryMapper* map;
 	
-	char read(uint16_t address) { return map.read(address); };
-	void write(uint16_t address, char byte) { map.write(address, byte); };
+	char read(uint16_t address) { return map->read(address); };
+	void write(uint16_t address, char byte) { map->write(address, byte); };
 
-	MemoryInterface(MemoryMapper m) { this->map = m; };
-	//virtual ~MemoryInterface() { delete addressSpace; };
+	MemoryInterface() { this->map = new MemoryMapper(); }
+	
+	MemoryInterface(MemoryMapper* m) { this->map = m; };
 };

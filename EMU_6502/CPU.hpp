@@ -33,17 +33,34 @@ typedef enum OpCode op_code_t;
 
 class CPU_6502: public MemoryInterface
 {
-public:
-
-	unsigned char* regs; // registers
-	char16_t Pc; // program counter
+private:
+	uint8_t* regs; // registers
+	uint16_t Pc; // program counter
 	uint64_t cycles; // TODO: implement cycle counting
 	
-	CPU_6502(unsigned char* mem_ptr);
+public:
+	CPU_6502();
+	
+	CPU_6502(MemoryMapper* m);
 
 	~CPU_6502();
 
+	uint8_t getReg(reg_t reg) { return this->regs[reg]; }
+	uint8_t* getRegs() { return this->regs; }
 
+	void setReg(reg_t reg, uint8_t byte) { this->regs[reg] = byte; }
+
+	
+	uint16_t getPc() { return this->Pc; }
+
+	void setPc(uint16_t pc) { this->Pc = pc; }
+
+	
+	uint64_t getCycles() { return this->cycles; }
+
+	void setCycles(uint64_t cycles) { this->cycles = cycles; }
+
+	
 	// Derives opcode params based on opcode fetched using PC, returns via reference
 	void fetch(op_code_t&, op_code_params_t&);
 

@@ -1,9 +1,19 @@
 ﻿#pragma once
 
 #include "CPU.hpp"
+#include "MemoryMapper.hpp"
 #include "Operations.hpp"
 
-CPU_6502::CPU_6502(unsigned char* mem_ptr):MemoryInterface(mem_ptr)
+
+CPU_6502::CPU_6502():MemoryInterface()
+{
+	this->regs = new unsigned char[5];
+	this->regs[STACK] = 0x0100;
+	this->Pc = 0x0000;
+	this->cycles = 0;
+}
+
+CPU_6502::CPU_6502(MemoryMapper* m):MemoryInterface(m)
 {
 	this->regs = new unsigned char[5];
 	this->regs[STACK] = 0x0100;
@@ -47,7 +57,7 @@ void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 	
 	if(instructionNames[opcode] == FUT)
 	{
-		throw"Exception! Unimplemented OpCode";
+		throw "Exception! Unimplemented OpCode";
 	}
 
 	op_code_params_t op_params;

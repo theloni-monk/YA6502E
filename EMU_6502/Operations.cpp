@@ -8,12 +8,12 @@
 /* FLAG OPERATIONS */
 void setFlag(CPU_6502* c, flag_t flag, bool val)
 {
-	c->regs[STATUS] = (c->regs[STATUS] & ~(1 << flag)) | (val << flag);
+	c->setReg(STATUS,(c->getReg(STATUS) & ~(1 << flag)) | (val << flag));
 }
 
 bool getFlag(CPU_6502* c, flag_t flag)
 {
-	uint8_t status = c->regs[STATUS];
+	uint8_t status = c->getReg(STATUS);
 	bool flagVal = status >> flag & 0x01; //TODO: TESTME this is sketch
 	return flagVal;
 }
@@ -87,20 +87,20 @@ void setSign(CPU_6502* c, int8_t val)
 /* STACK OPERATIONS */
 // push an operand onto the stack
 void PUSH(CPU_6502* c, int8_t operand) {
-	uint8_t stackVal = c->regs[STACK];
+	uint8_t stackVal = c->getReg(STACK);
 	uint16_t address = 0x0100 | stackVal;
 	//0x0100 is hardcoded as stack page
 	//lives in 0x0100 to 0x01FF page of mem
 	c->write(address, operand);
 	uint8_t newStackVal = stackVal - 1;
-	c->regs[STACK] = newStackVal;
+	c->setReg(STACK, newStackVal);
 }
 
 // pull value from stack in memory
 char PULL(CPU_6502* c) {
-	uint8_t stackVal = c->regs[STACK];
+	uint8_t stackVal = c->getReg(STACK);
 	uint8_t newStackVal = stackVal + 1;
-	c->regs[STACK] = newStackVal;
+	c->setReg(STACK, newStackVal);
 	//0x0100 is hardcoded as stack page
 	//lives in 0x0100 to 0x01FF page of mem
 	uint16_t address = 0x0100 | newStackVal;
@@ -112,7 +112,7 @@ char PULL(CPU_6502* c) {
 std::function<void(CPU_6502* c, op_code_params* o)> adc = [](CPU_6502 *c, op_code_params* o) -> void
 {
 	int8_t carry = getFlag(c, CARRY);
-	int8_t accum = c->regs[ACCUM];
+	int8_t accum = c->getReg(ACCUM);
 	int8_t operand = o->operand;
 	int16_t sum = (0x00FF & carry) + (0x00FF & accum) + (0x00FF & operand);
 	int8_t sumByte = sum & 0x00FF;
@@ -120,7 +120,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> adc = [](CPU_6502 *c, op_cod
 	setZero(c, sumByte); // set zero flag if zero
 
 	// Black Magic from https://github.com/dennis-chen/6502-Emu/blob/master/src/cpu.c
-	if (c->regs[STATUS] & DECIMAL_MODE) { //in decimal mode
+	if (c->getReg(STATUS) & DECIMAL_MODE) { //in decimal mode
 		//if lower 4 bits of operands plus
 		//the carry in are larger than 9,
 		//then we need to apply conversions
@@ -142,16 +142,16 @@ std::function<void(CPU_6502* c, op_code_params* o)> adc = [](CPU_6502 *c, op_cod
 		setOverflow(c, accum, operand, sumByte);
 		setCarry(c, sum);
 	}
-	c->regs[ACCUM] = sum & 0xFF;
+	c->setReg(ACCUM,sum & 0xFF);
 };
 
 // And memory with accumulator // NOTE: named and_ instead of and b/c cpp has 'and' reserved for some reason 
 std::function<void(CPU_6502* c, op_code_params* o)> and_ = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t res = c->regs[ACCUM] & o->operand;
+	int8_t res = c->getReg(ACCUM) & o->operand;
 	setSign(c, res);
 	setZero(c, res);
-	c->regs[ACCUM] = res;
+	c->setReg(ACCUM, res);
 };
 
 // Arithmetic shift left
@@ -166,7 +166,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> asl = [](CPU_6502 * c, op_co
 
 	if(o->mode == Accum_mode)
 	{
-		c->regs[ACCUM] = resByte;
+		c->setReg(ACCUM, resByte);
 	}
 	else
 	{
@@ -180,7 +180,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bcc = [](CPU_6502 * c, op_co
 {
 	if(!getFlag(c, CARRY))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 
 		//add cycles
 	}
@@ -208,7 +208,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> beq = [](CPU_6502 * c, op_co
 std::function<void(CPU_6502* c, op_code_params* o)> bit = [](CPU_6502 * c, op_code_params* o) -> void
 {
 	int8_t src = o->operand;
-	int8_t accum = c->regs[ACCUM];
+	int8_t accum = c->getReg(ACCUM);
 	setFlag(c, OVRFLW, (src & 0x40) ? 1 : 0); // get 6th bit of src
 	setFlag(c, NEGATIVE, (src & 0x80) ? 1 : 0); // get 7th bit of src
 	setFlag(c, ZERO, (src& accum) ? 0 : 1);
@@ -219,7 +219,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bmi = [](CPU_6502 * c, op_co
 {
 	if (!getFlag(c, NEGATIVE))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
@@ -228,7 +228,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bne = [](CPU_6502 * c, op_co
 {
 	if (!getFlag(c, ZERO))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
@@ -237,26 +237,26 @@ std::function<void(CPU_6502* c, op_code_params* o)> bpl = [](CPU_6502 * c, op_co
 {
 	if (!getFlag(c, NEGATIVE))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
 // Break, force interrupt
 std::function<void(CPU_6502* c, op_code_params* o)> brk = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	(c->Pc)++; // when we return go to next instruction
+	c->setPc(c->getPc() + 1); // when we return go to next instruction
 	// split program counter into two bytes and push them onto stack
-	PUSH(c, (c->Pc >> 8) & 0xFF);
-	PUSH(c, c->Pc & 0xFF);
+	PUSH(c, (c->getPc() >> 8) & 0xFF);
+	PUSH(c, c->getPc() & 0xFF);
 	
 	setFlag(c, BRK_COMMAND, true);
-	PUSH(c, c->regs[STATUS]); //push flags onto stack
+	PUSH(c, c->getReg[STATUS]); //push flags onto stack
 
 	uint8_t lowerByte = c->read(0xFFFE);
 	uint8_t upperByte = c->read(0xFFFF);
 	uint16_t returnAddress = (upperByte << 8) | lowerByte; // dedicated memory location for interrupt routine
 
-	c->Pc = returnAddress;
+	c->setPc(returnAddress);
 };
 
 // Branch if overflow clear
@@ -264,7 +264,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bvc = [](CPU_6502 * c, op_co
 {
 	if (!getFlag(c, OVRFLW))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
@@ -273,7 +273,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bvs = [](CPU_6502 * c, op_co
 {
 	if (getFlag(c, OVRFLW))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
@@ -304,7 +304,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> clv = [](CPU_6502 * c, op_co
 // Compare memory and Accum reg
 std::function<void(CPU_6502* c, op_code_params* o)> cmp = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t accum_val = c->regs[ACCUM];
+	int8_t accum_val = c->getReg[ACCUM];
 	int8_t operand = o->operand;
 	int8_t diff = accum_val - operand;
 
@@ -319,7 +319,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> cmp = [](CPU_6502 * c, op_co
 // Compare Memory and index X reg
 std::function<void(CPU_6502* c, op_code_params* o)> cpx = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t x_val = c->regs[IND_X];
+	int8_t x_val = c->getReg[IND_X];
 	int8_t operand = o->operand;
 	int8_t diff = x_val - operand;
 
@@ -334,7 +334,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> cpx = [](CPU_6502 * c, op_co
 // Compare Memory and index Y reg
 std::function<void(CPU_6502* c, op_code_params* o)> cpy = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t y_val = c->regs[IND_Y];
+	int8_t y_val = c->getReg[IND_Y];
 	int8_t operand = o->operand;
 	int8_t diff = y_val - operand;
 
@@ -361,29 +361,29 @@ std::function<void(CPU_6502* c, op_code_params* o)> dec = [](CPU_6502 * c, op_co
 // Decrement index X reg
 std::function<void(CPU_6502* c, op_code_params* o)> dex = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	uint8_t x_val = c->regs[IND_X];
+	uint8_t x_val = c->getReg(IND_X);
 	uint8_t res = x_val - 1;
 	setSign(c, res);
 	setZero(c, res);
-	c->regs[IND_X] = res;
+	c->setReg(IND_X, res);
 };
 
 // Decrement index Y reg
 std::function<void(CPU_6502* c, op_code_params* o)> dey = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	uint8_t y_val = c->regs[IND_Y];
+	uint8_t y_val = c->getReg(IND_Y);
 	uint8_t res = y_val - 1;
 	setSign(c, res);
 	setZero(c, res);
-	c->regs[IND_Y] = res;
+	c->setReg(IND_Y, res);
 };
 
 // Xor memory with accumulator
 std::function<void(CPU_6502* c, op_code_params* o)> eor = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t accum = c->regs[ACCUM];
+	int8_t accum = c->getReg[ACCUM];
 	int8_t res = accum ^ o->operand;
-	c->regs[ACCUM] = res;
+	c->setReg(ACCUM, res);
 	setSign(c, res);
 	setZero(c, res);
 };
@@ -408,39 +408,39 @@ std::function<void(CPU_6502* c, op_code_params* o)> inc = [](CPU_6502 * c, op_co
 // Increment index X reg by one
 std::function<void(CPU_6502* c, op_code_params* o)> inx = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	uint8_t x_val = c->regs[IND_X];
+	uint8_t x_val = c->getReg(IND_X);
 	uint8_t res = x_val + 1;
 	setSign(c, res);
 	setZero(c, res);
-	c->regs[IND_X] = res;
+	c->setReg(IND_X, res);
 };
 
 // Increment index Y reg by one
 std::function<void(CPU_6502* c, op_code_params* o)> iny = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	uint8_t y_val = c->regs[IND_Y];
+	uint8_t y_val = c->getReg(IND_Y);
 	uint8_t res = y_val + 1;
 	setSign(c, res);
 	setZero(c, res);
-	c->regs[IND_Y] = res;
+	c->setReg(IND_Y, res);
 };
 
 // Jump to address;
 std::function<void(CPU_6502* c, op_code_params* o)> jmp = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->Pc = 0xFFFF & (o->address);
+	c->setPc( 0xFFFF & (o->address));
 };
 
 // Jump to subroutine
 std::function<void(CPU_6502* c, op_code_params* o)> jsr = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->Pc--; // decrement so that when it jumps back it will go up by one to original value
+	c->setPc(c->getPc()-1); // decrement so that when it jumps back it will go up by one to original value
 	//STACK only holds 8 bit values so we split the 16 bit addr into two bytes
-	uint8_t upperByte = ((c->Pc) >> 8) & 0xFF;
-	uint8_t lowerByte = c->Pc;
+	uint8_t upperByte = ((c->getPc()) >> 8) & 0xFF;
+	uint8_t lowerByte = c->getPc();
 	PUSH(c, upperByte);
 	PUSH(c, lowerByte);
-	c->Pc = o->address;
+	c->setPc(o->address);
 };
 
 // Load Accumulator
@@ -448,7 +448,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> lda = [](CPU_6502 * c, op_co
 {
 	setSign(c, o->operand);
 	setZero(c, o->operand);
-	c->regs[ACCUM] = o->operand;
+	c->setReg(ACCUM, o->operand);
 };
 
 // Load index X reg
@@ -456,7 +456,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> ldx = [](CPU_6502 * c, op_co
 {
 	setSign(c, o->operand);
 	setZero(c, o->operand);
-	c->regs[IND_X] = o->operand;
+	c->setReg(IND_X, o->operand);
 };
 
 // Load index Y reg
@@ -464,7 +464,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> ldy = [](CPU_6502 * c, op_co
 {
 	setSign(c, o->operand);
 	setZero(c, o->operand);
-	c->regs[IND_Y] = o->operand;
+	c->setReg(IND_Y, o->operand);
 };
 
 // Logical Shift Right
@@ -477,7 +477,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> lsr = [](CPU_6502 * c, op_co
 	setZero(c, shifted);
 	if(o->mode == Accum_mode)
 	{
-		c->regs[ACCUM] = shifted;
+		c->setReg(ACCUM, shifted);
 	}
 	else
 	{
@@ -491,30 +491,30 @@ std::function<void(CPU_6502* c, op_code_params* o)> nop = [](CPU_6502 * c, op_co
 // OR memory with Accumulator
 std::function<void(CPU_6502* c, op_code_params* o)> ora = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	int8_t res = c->regs[ACCUM] | o->operand;
+	int8_t res = c->getReg(ACCUM) | o->operand;
 	setZero(c, res);
 	setSign(c, res);
 
-	c->regs[ACCUM] = res;
+	c->setReg(ACCUM, res);
 };
 
 // Push accumulator onto the stack
 std::function<void(CPU_6502* c, op_code_params* o)> pha = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	PUSH(c, c->regs[ACCUM]);
+	PUSH(c, c->getReg(ACCUM));
 };
 
 // Push status onto the stack
 std::function<void(CPU_6502* c, op_code_params* o)> php = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	PUSH(c, c->regs[STATUS]);
+	PUSH(c, c->getReg(STATUS));
 };
 
 // Pull from stack onto accumulator
 std::function<void(CPU_6502* c, op_code_params* o)> pla = [](CPU_6502 * c, op_code_params * o) -> void
 {
 	int8_t res = PULL(c);
-	c->regs[ACCUM] = res;
+	c->setReg(ACCUM, res);
 	setSign(c, res);
 	setZero(c, res);
 };
@@ -537,7 +537,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> rol = [](CPU_6502 * c, op_co
 	setZero(c, src);
 	if(o->mode == Accum_mode)
 	{
-		c->regs[ACCUM] = src;
+		c->setReg(ACCUM, src);
 	}
 	else
 	{
@@ -556,7 +556,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> ror = [](CPU_6502 * c, op_co
 	setZero(c, src);
 	if (o->mode == Accum_mode)
 	{
-		c->regs[ACCUM] = src;
+		c->setReg(ACCUM, src);
 	}
 	else
 	{
@@ -569,12 +569,12 @@ std::function<void(CPU_6502* c, op_code_params* o)> rti = [](CPU_6502 * c, op_co
 {
 	// interrupts push flags onto the stack
 	uint8_t status = PULL(c);
-	c->regs[STATUS] = status;
+	c->setReg(STATUS, status);
 	
 	uint8_t lowByte = PULL(c);
 	uint8_t highByte = PULL(c);
 	uint16_t address = ((highByte << 8) | lowByte); 
-	c->Pc = address;
+	c->setPc(address);
 };
 
 // Return from subroutine
@@ -583,14 +583,14 @@ std::function<void(CPU_6502* c, op_code_params* o)> rts = [](CPU_6502 * c, op_co
 	uint8_t lowByte = PULL(c);
 	uint8_t highByte = PULL(c);
 	uint16_t address = ((highByte << 8) | lowByte) + 1; // add 1 to set it back to original place
-	c->Pc = address;
+	c->setPc(address);
 };
 
 // Subtract from accum with borrow from carry; NOTE: blantantly stolen bc it is twos complenent bit black magic
 std::function<void(CPU_6502* c, op_code_params* o)> sbc = [](CPU_6502 * c, op_code_params * o) -> void {
 	//we want to subtract the opposite of the carry bit
 	int8_t carry = getFlag(c, CARRY) ? 0 : 1;
-	int8_t accum = c->regs[ACCUM];
+	int8_t accum = c->getReg(ACCUM);
 	int8_t operand = o->operand;
 	uint16_t diff = (0x00FF & accum) - (0x00FF & operand) - (0x00FF & carry);
 	setSign(c, diff & 0xFF);
@@ -605,7 +605,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> sbc = [](CPU_6502 * c, op_co
 		}
 	}
 	setFlag(c, CARRY, diff < 0x100);
-	c->regs[ACCUM] = diff & 0xFF;
+	c->setReg(ACCUM, diff & 0xFF);
 };
 
 // Set carry flag to 1
@@ -629,43 +629,43 @@ std::function<void(CPU_6502* c, op_code_params* o)> sei = [](CPU_6502 * c, op_co
 // Store accumulator to memory
 std::function<void(CPU_6502* c, op_code_params* o)> sta = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->write(o->address, c->regs[ACCUM]);
+	c->write(o->address, c->getReg(ACCUM));
 };
 
 // Store index X reg to memory
 std::function<void(CPU_6502* c, op_code_params* o)> stx = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->write(o->address, c->regs[IND_X]);
+	c->write(o->address, c->getReg(IND_X));
 };
 
 // Store index Y reg to memory
 std::function<void(CPU_6502* c, op_code_params* o)> sty = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->write(o->address, c->regs[IND_Y]);
+	c->write(o->address, c->getReg(IND_Y));
 };
 
 // Transfer Accumulator to index X reg
 std::function<void(CPU_6502* c, op_code_params* o)> tax = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	int8_t accum = c->regs[ACCUM];
+	int8_t accum = c->getReg(ACCUM);
 	setSign(c, accum);
 	setZero(c, accum);
-	c->regs[IND_X] = accum;
+	c->setReg(IND_X, accum);
 };
 
 // Transfer Accumulator to index Y reg
 std::function<void(CPU_6502* c, op_code_params* o)> tay = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	int8_t accum = c->regs[ACCUM];
+	int8_t accum = c->getReg(ACCUM);
 	setSign(c, accum);
 	setZero(c, accum);
-	c->regs[IND_Y] = accum;
+	c->setReg(IND_Y, accum);
 };
 
 // Transfer stack pointer to index X reg
 std::function<void(CPU_6502* c, op_code_params* o)> tsx = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->regs[IND_X] = c->regs[STACK];
+	c->setReg(ND_X] = c->regs[STACK];
 };
 
 // Transfer index X reg to Accumulator

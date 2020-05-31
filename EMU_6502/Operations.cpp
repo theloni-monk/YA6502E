@@ -225,6 +225,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bmi = [](CPU_6502 * c, op_co
 // Branch if not equal aka zero
 std::function<void(CPU_6502* c, op_code_params* o)> bne = [](CPU_6502 * c, op_code_params* o) -> void
 {
+	//printf("Zero flag = %u", getFlag(c, ZERO));
 	if (!getFlag(c, ZERO))
 	{
 		c->setPc(o->address);
@@ -724,21 +725,21 @@ std::function<void(CPU_6502* c, op_code_params* o)> opcode_to_func[256] = {
 };
 
 addressing_mode_t instructionModes[256] = {
-	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Accum_mode, IMM, Absolute, Absolute, Absolute, Absolute,
+	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Accum_mode, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
-	Absolute, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Accum_mode, IMM, Absolute, Absolute, Absolute, Absolute,
+	Absolute, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Accum_mode, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
-	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Accum_mode, IMM, Absolute, Absolute, Absolute, Absolute,
+	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Accum_mode, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
-	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Accum_mode, IMM, Indirect, Absolute, Absolute, Absolute,
+	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Accum_mode, Immediate, Indirect, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
-	IMM, IndexedIndirect, IMM, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Implied, IMM, Absolute, Absolute, Absolute, Absolute,
+	Immediate, IndexedIndirect, Immediate, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Implied, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPY, ZPY, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteY, AbsoluteY,
-	IMM, IndexedIndirect, IMM, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Implied, IMM, Absolute, Absolute, Absolute, Absolute,
+	Immediate, IndexedIndirect, Immediate, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Implied, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPY, ZPY, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteY, AbsoluteY,
-	IMM, IndexedIndirect, IMM, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Implied, IMM, Absolute, Absolute, Absolute, Absolute,
+	Immediate, IndexedIndirect, Immediate, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Implied, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
-	IMM, IndexedIndirect, IMM, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Implied, IMM, Absolute, Absolute, Absolute, Absolute,
+	Immediate, IndexedIndirect, Immediate, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, Immediate, Implied, Immediate, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
 };
 
@@ -815,6 +816,7 @@ uint8_t instructionPageCycles[256] = {
 	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 };
 
+//TODO: make these strings for easier printing
 op_code_t instructionNames[256] = {
 	//FUT represents unimplemented op codes
 	BRK, ORA, FUT, FUT, FUT, ORA, ASL, FUT,
@@ -849,4 +851,39 @@ op_code_t instructionNames[256] = {
 	INX, SBC, NOP, FUT, CPX, SBC, INC, FUT,
 	BEQ, SBC, FUT, FUT, FUT, SBC, INC, FUT,
 	SED, SBC, FUT, FUT, FUT, SBC, INC, FUT
+};
+
+char instructionChars[256][4]{
+	"BRK", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"PHP", "ORA", "ASL", "ANC", "NOP", "ORA", "ASL", "SLO",
+	"BPL", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"CLC", "ORA", "NOP", "SLO", "NOP", "ORA", "ASL", "SLO",
+	"JSR", "AND", "KIL", "RLA", "BIT", "AND", "ROL", "RLA",
+	"PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA",
+	"BMI", "AND", "KIL", "RLA", "NOP", "AND", "ROL", "RLA",
+	"SEC", "AND", "NOP", "RLA", "NOP", "AND", "ROL", "RLA",
+	"RTI", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
+	"BVC", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"CLI", "EOR", "NOP", "SRE", "NOP", "EOR", "LSR", "SRE",
+	"RTS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"PLA", "ADC", "ROR", "ARR", "JMP", "ADC", "ROR", "RRA",
+	"BVS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"NOP", "STA", "NOP", "SAX", "STY", "STA", "STX", "SAX",
+	"DEY", "NOP", "TXA", "XAA", "STY", "STA", "STX", "SAX",
+	"BCC", "STA", "KIL", "AHX", "STY", "STA", "STX", "SAX",
+	"TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "AHX",
+	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX",
+	"TAY", "LDA", "TAX", "LAX", "LDY", "LDA", "LDX", "LAX",
+	"BCS", "LDA", "KIL", "LAX", "LDY", "LDA", "LDX", "LAX",
+	"CLV", "LDA", "TSX", "LAS", "LDY", "LDA", "LDX", "LAX",
+	"CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP",
+	"INY", "CMP", "DEX", "AXS", "CPY", "CMP", "DEC", "DCP",
+	"BNE", "CMP", "KIL", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CLD", "CMP", "NOP", "DCP", "NOP", "CMP", "DEC", "DCP",
+	"CPX", "SBC", "NOP", "ISC", "CPX", "SBC", "INC", "ISC",
+	"INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISC",
+	"BEQ", "SBC", "KIL", "ISC", "NOP", "SBC", "INC", "ISC",
+	"SED", "SBC", "NOP", "ISC", "NOP", "SBC", "INC", "ISC",
 };

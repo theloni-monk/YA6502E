@@ -24,9 +24,10 @@ typedef enum op_code_t : uint8_t
 
 typedef enum  addressing_mode_t : uint8_t
 {
+	UNUSED,
 	Absolute, AbsoluteX, AbsoluteY,
 	Accum_mode,
-	IMM,
+	Immediate,
 	Implied,
 	IndexedIndirect,
 	Indirect, IndirectIndexed,
@@ -51,6 +52,9 @@ extern uint8_t instructionPageCycles[256];
 
 // instructionNames indicates the name of each instruction
 extern op_code_t instructionNames[256];
+
+// used only by visualizer to print names, instructionNames is used as uint for faster lookup
+extern char instructionChars[256][4];
 
 typedef struct op_code_params{
 	uint16_t address;

@@ -2,9 +2,12 @@
 
 
 #include "TestEnv.hpp"
-
+#include "inttypes.h"
+#include <stdlib.h>
 #include <iostream>
-//TODO: writeme
+
+#define DEBUG false
+
 TestEnv::TestEnv()
 {
 	init("");
@@ -24,31 +27,57 @@ void TestEnv::init(std::string filePath)
 	loadProgram("",0x00);
 }
 
-void TestEnv::step()
+void TestEnv::step(int step)
 {
-	op_code_t op;
+	uint8_t op;
 	op_code_params_t info;
 
 	cpu->fetch(op, info);
 
 	cpu->execute(op, info);
+
+	visualize(op, info, step);
 }
 
-void TestEnv::visualize()
+void printDebug(CPU_6502* cpu, uint8_t o, op_code_params_t params)
 {
-	std::cout << (cpu->getRegs()) << '\n';
+	printf("\n\nProgram Counter: %#x", (cpu->getPc())); // vis called after program counter already incremented by instruction
+	printf("\nOPCODE: %s", instructionChars[o]);
+	printf("\n\tInstruction Mode: %u", params.mode);
+	printf("\n\tAddress: %#x", params.address);
+	printf("\n\tOperand: %#x", params.operand);
+	printf("\n\tInstruction Size: %u", params.instructionSize);
+
+	printf("\nREGISTERS: ");
+	// printing status as a binary string
+	int status = (int)cpu->getReg(STATUS);
+	char statusBuffer[8];
+	_itoa_s(status, statusBuffer, 2);
+
+	printf("\n\tStatus: 0b%s", statusBuffer);
+	printf("\n\tAccumulator: %u", cpu->getReg(ACCUM));
+	printf("\n\tIndex X: %u", cpu->getReg(IND_X));
+	printf("\n\tIndex Y: %u", cpu->getReg(IND_Y));
+	printf("\n\tSTACK: %u", cpu->getReg(STACK));
 }
 
-const int steps = 20;
+void TestEnv::visualize(uint8_t o, op_code_params_t params, int step)
+{
+	if(DEBUG) printDebug(cpu, o, params);
+	if(step%3 == 0) printf("\n\nIndex X: %u", cpu->getReg(IND_X));
+	
+	
+}
+
+const int steps = 1000;
 void TestEnv::run()
 {
 	for(int i = 0; i< steps; i++)
 	{
-		step();
-		visualize();
+		step(i);
+		
 	}
 }
-
 
 
 
@@ -61,5 +90,10 @@ void TestEnv::loadProgram(std::string filePath, uint16_t programStart)
 	0x8D, 0x01, 0x00, 0x8E, 0x00, 0x00, 0x88, 0xD0, 0xF1
 	};
 	
-	if(!map->writeArray(programStart, fibonacciProgram, 33)) _ASSERT(0);
+	uint8_t basicInc[7]
+	{
+		0xA2, 0x02, 0xE8, 0x38, 0xB0, 0xFC
+	};
+	
+	if(!map->writeArray(programStart, basicInc, 6)) _ASSERT(0);
 }

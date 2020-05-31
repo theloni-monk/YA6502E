@@ -14,9 +14,9 @@ public:
 
 	void init(std::string filePath);
 
-	void visualize();
+	void visualize(uint8_t o, op_code_params_t params, int step);
 
-	void step();
+	void step(int step);
 
 	void run();
 

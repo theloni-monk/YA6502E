@@ -3,7 +3,6 @@
 #include "Operations.hpp"
 #include "CPU.hpp"
 
-//TODO: possibly implement register manipulation via function calls instead of direct
 
 /* FLAG OPERATIONS */
 void setFlag(CPU_6502* c, flag_t flag, bool val)
@@ -191,7 +190,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> bcs = [](CPU_6502 * c, op_co
 {
 	if(getFlag(c, CARRY))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
@@ -200,7 +199,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> beq = [](CPU_6502 * c, op_co
 {
 	if(getFlag(c, ZERO))
 	{
-		c->Pc = o->address;
+		c->setPc(o->address);
 	}
 };
 
@@ -250,7 +249,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> brk = [](CPU_6502 * c, op_co
 	PUSH(c, c->getPc() & 0xFF);
 	
 	setFlag(c, BRK_COMMAND, true);
-	PUSH(c, c->getReg[STATUS]); //push flags onto stack
+	PUSH(c, c->getReg(STATUS)); //push flags onto stack
 
 	uint8_t lowerByte = c->read(0xFFFE);
 	uint8_t upperByte = c->read(0xFFFF);
@@ -304,7 +303,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> clv = [](CPU_6502 * c, op_co
 // Compare memory and Accum reg
 std::function<void(CPU_6502* c, op_code_params* o)> cmp = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t accum_val = c->getReg[ACCUM];
+	int8_t accum_val = c->getReg(ACCUM);
 	int8_t operand = o->operand;
 	int8_t diff = accum_val - operand;
 
@@ -319,7 +318,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> cmp = [](CPU_6502 * c, op_co
 // Compare Memory and index X reg
 std::function<void(CPU_6502* c, op_code_params* o)> cpx = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t x_val = c->getReg[IND_X];
+	int8_t x_val = c->getReg(IND_X);
 	int8_t operand = o->operand;
 	int8_t diff = x_val - operand;
 
@@ -334,7 +333,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> cpx = [](CPU_6502 * c, op_co
 // Compare Memory and index Y reg
 std::function<void(CPU_6502* c, op_code_params* o)> cpy = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t y_val = c->getReg[IND_Y];
+	int8_t y_val = c->getReg(IND_Y);
 	int8_t operand = o->operand;
 	int8_t diff = y_val - operand;
 
@@ -381,7 +380,8 @@ std::function<void(CPU_6502* c, op_code_params* o)> dey = [](CPU_6502 * c, op_co
 // Xor memory with accumulator
 std::function<void(CPU_6502* c, op_code_params* o)> eor = [](CPU_6502 * c, op_code_params* o) -> void
 {
-	int8_t accum = c->getReg[ACCUM];
+	printf("testing");
+	int8_t accum = c->getReg(ACCUM);
 	int8_t res = accum ^ o->operand;
 	c->setReg(ACCUM, res);
 	setSign(c, res);
@@ -665,25 +665,25 @@ std::function<void(CPU_6502* c, op_code_params* o)> tay = [](CPU_6502 * c, op_co
 // Transfer stack pointer to index X reg
 std::function<void(CPU_6502* c, op_code_params* o)> tsx = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->setReg(ND_X] = c->regs[STACK];
+	c->setReg(IND_X, c->getReg(STACK));
 };
 
 // Transfer index X reg to Accumulator
 std::function<void(CPU_6502* c, op_code_params* o)> txa = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->regs[ACCUM] = c->regs[IND_X];
+	c->setReg(ACCUM, c->getReg(IND_X));
 };
 
 // Transfer index X reg to stack pointer
 std::function<void(CPU_6502* c, op_code_params* o)> txs = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->regs[STACK] = c->regs[IND_X];
+	c->setReg(STACK, c->getReg(IND_X));
 };
 
 // Transfer index Y reg to Accumulator
 std::function<void(CPU_6502* c, op_code_params* o)> tya = [](CPU_6502 * c, op_code_params * o) -> void
 {
-	c->regs[ACCUM] = c->regs[IND_Y];
+	c->setReg(ACCUM, c->getReg(IND_Y));
 };
 
 
@@ -723,7 +723,7 @@ std::function<void(CPU_6502* c, op_code_params* o)> opcode_to_func[256] = {
 	sed, sbc, fut, fut, fut, sbc, inc, fut
 };
 
-AddressingMode instructionModes[256] = {
+addressing_mode_t instructionModes[256] = {
 	Implied, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Accum_mode, IMM, Absolute, Absolute, Absolute, Absolute,
 	Relative, IndirectIndexed, Implied, IndirectIndexed, ZPX, ZPX, ZPX, ZPX, Implied, AbsoluteY, Implied, AbsoluteY, AbsoluteX, AbsoluteX, AbsoluteX, AbsoluteX,
 	Absolute, IndexedIndirect, Implied, IndexedIndirect, ZP, ZP, ZP, ZP, Implied, IMM, Accum_mode, IMM, Absolute, Absolute, Absolute, Absolute,
@@ -815,7 +815,7 @@ uint8_t instructionPageCycles[256] = {
 	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 };
 
-OpCode instructionNames[256] = {
+op_code_t instructionNames[256] = {
 	//FUT represents unimplemented op codes
 	BRK, ORA, FUT, FUT, FUT, ORA, ASL, FUT,
 	PHP, ORA, ASL, FUT, FUT, ORA, ASL, FUT,

@@ -1,10 +1,9 @@
 ﻿#pragma once
-#include "MemoryInterface.hpp"
 #include "CPU.hpp"
 #include <functional>
 class CPU_6502;
 
-typedef enum OpCode
+typedef enum op_code_t : uint8_t
 {
 	ADC, AND, ASL,
 	BCC, BCS, BEQ, BIT, BMI, BNE, BPL, BRK, BVC, BVS,
@@ -21,9 +20,9 @@ typedef enum OpCode
 	ROL, ROR, RTI, RTS,
 	SBC, SEC, SED, SEI, STA, STX, STY,
 	TAX, TAY, TSX, TXA, TXS, TYA
-} op_code_t;
+};
 
-typedef enum AddressingMode
+typedef enum  addressing_mode_t : uint8_t
 {
 	Absolute, AbsoluteX, AbsoluteY,
 	Accum_mode,
@@ -33,11 +32,11 @@ typedef enum AddressingMode
 	Indirect, IndirectIndexed,
 	Relative,
 	ZP, ZPX, ZPY,
-} addressing_mode_t;
+};
 
 
 // instructionModes indicates the addressing mode for each instruction
-extern AddressingMode instructionModes[256];
+extern addressing_mode_t instructionModes[256];
 
 // instructionSizes indicates the size of each instruction in bytes
 extern uint8_t instructionSizes[256]; 
@@ -51,11 +50,11 @@ extern uint8_t instructionCycle[256];
 extern uint8_t instructionPageCycles[256];
 
 // instructionNames indicates the name of each instruction
-extern OpCode instructionNames[256];
+extern op_code_t instructionNames[256];
 
 typedef struct op_code_params{
-	char16_t address;
-	unsigned char operand;
+	uint16_t address;
+	uint8_t operand;
 	addressing_mode_t mode;
 	uint8_t instructionSize;
 } op_code_params_t;

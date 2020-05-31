@@ -11,7 +11,7 @@ typedef enum Flag
 	IRQ_DISABLE,
 	DECIMAL_MODE,
 	BRK_COMMAND,
-	UNUSED,
+	PLACEHOLDER_BIT, //USELESS placeholder bit in status reg
 	OVRFLW, //OVERFLOW is a reserved word in c++
 	NEGATIVE
 } flag_t;
@@ -62,10 +62,10 @@ public:
 
 	
 	// Derives opcode params based on opcode fetched using PC, returns via reference
-	void fetch(op_code_t&, op_code_params_t&);
+	void fetch(uint8_t&, op_code_params_t&);
 
 	// Executes op code based on pparameters passed to it as a pointer
-	void execute(op_code_t, op_code_params_t);
+	void execute(uint8_t, op_code_params_t);
 
 	// allocate memory for registers and address space and initialize the program counter
 	void reset(uint16_t);

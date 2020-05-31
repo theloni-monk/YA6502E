@@ -49,12 +49,13 @@ op_code_params_t makeParams(unsigned char operand, char16_t addr, addressing_mod
 }
 
 // Derives opcode params based on opcode fetched using PC, returns via reference
-void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
+void CPU_6502::fetch(uint8_t &op, op_code_params_t &params)
 {
-	op_code_t opcode = instructionNames[this->read(this->Pc)];
+	uint8_t opcode = this->read(this->Pc);
 	
 	if(instructionNames[opcode] == FUT)
 	{
+		printf("fut name called in fetch");
 		throw "Exception! Unimplemented OpCode";
 	}
 
@@ -102,7 +103,7 @@ void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 			operand = this->regs[ACCUM];
 			op_params = makeParams(operand, address, mode);
 			break;
-		case IMM:
+		case Immediate:
 			address = this->Pc + 1;
 			operand = this->read(address);
 			op_params = makeParams(operand, address, mode);
@@ -147,8 +148,16 @@ void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 		case Relative:
 			//for branching within +-128 
 		{
-			int16_t offset = this->read(this->Pc + 1);
-			address = this->Pc + 2 + offset;
+			// int16_t offset = this->read(this->Pc + 1);
+			//
+			// address = this->Pc + 2 + offset;
+			uint16_t offset = this->read(this->Pc + 1);
+			if(offset < 0x80){
+				address = this->Pc + 2 + offset;
+			}
+			else {
+				address = this->Pc + 2 + offset - 0x100;
+			}
 			op_params = makeParams(0, address, mode);
 		}
 		break;
@@ -185,10 +194,11 @@ void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 }
 
 // Executes op code based on parameters struct
-void CPU_6502::execute(op_code_t op, op_code_params_t params)
+void CPU_6502::execute(uint8_t op, op_code_params_t params)
 {
+	this->Pc += params.instructionSize; // go to next opcode
+	
 	opcode_to_func[op](this, &params);
-	this->Pc += instructionSizes[params.instructionSize]; // go to next opcode
 	// TODO: count cycles
 }
 

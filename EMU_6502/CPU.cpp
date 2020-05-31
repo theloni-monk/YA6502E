@@ -7,35 +7,32 @@
 
 CPU_6502::CPU_6502():MemoryInterface()
 {
-	this->regs = new unsigned char[5];
-	this->regs[STACK] = 0x0100;
+	this->regs = new uint8_t[5]();
 	this->Pc = 0x0000;
 	this->cycles = 0;
 }
 
 CPU_6502::CPU_6502(MemoryMapper* m):MemoryInterface(m)
 {
-	this->regs = new unsigned char[5];
-	this->regs[STACK] = 0x0100;
+	this->regs = new uint8_t[5]();
 	this->Pc = 0x0000;
 	this->cycles = 0;
 }
 
 CPU_6502::~CPU_6502()
 {
-	delete this->regs;
+	delete[] this->regs;
 	//delete this;
 }
 
 
 // reset regs and addressSpace and reinitialize the program counter
-void CPU_6502::reset(uint16_t PC_start = 0)
+void CPU_6502::reset(uint16_t PC_start = 0x60)
 {
-	delete this->regs;
-	this->regs = new unsigned char[5];
-	this->regs[STACK] = 0x0100;
+	delete[] this->regs;
+	this->regs = new uint8_t[5]();
 
-	//FIXME: reset memory mapper maybe?
+	//FIXME: reset memory mapper maybe? // maybe put reset in runtime env 
 	
 	this->Pc = PC_start;
 }
@@ -50,6 +47,7 @@ op_code_params_t makeParams(unsigned char operand, char16_t addr, addressing_mod
 	
 	return o;
 }
+
 // Derives opcode params based on opcode fetched using PC, returns via reference
 void CPU_6502::fetch(op_code_t &op, op_code_params_t &params)
 {
@@ -193,5 +191,4 @@ void CPU_6502::execute(op_code_t op, op_code_params_t params)
 	this->Pc += instructionSizes[params.instructionSize]; // go to next opcode
 	// TODO: count cycles
 }
-
 

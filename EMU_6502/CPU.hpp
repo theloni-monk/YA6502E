@@ -25,16 +25,16 @@ typedef enum REG
 	// index/general registers
 	IND_X,
 	IND_Y
-}reg_t;
+} reg_t;
 
 typedef struct op_code_params op_code_params_t;
 
-typedef enum OpCode op_code_t;
+typedef enum op_code_t: uint8_t;
 
 class CPU_6502: public MemoryInterface
 {
 private:
-	uint8_t* regs; // registers
+	uint8_t * regs ; // registers
 	uint16_t Pc; // program counter
 	uint64_t cycles; // TODO: implement cycle counting
 	

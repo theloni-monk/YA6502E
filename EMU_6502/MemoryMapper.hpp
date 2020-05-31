@@ -1,47 +1,51 @@
 #pragma once
 #include <cstdint>
+#include <cstdio>
+#include <iostream>
 
 class MemoryMapper // interface for generating a memory map for an entire system, base class simply creates 64k of ram
 {
 private:
-	char* addressSpace; // can't be directly modified
+	uint8_t* addressSpace; // can't be directly modified
+	uint64_t addrSpaceSize;
 
 public:
 	MemoryMapper()
 	{
-		addressSpace = new char[65536]; // children might not generate actual addressSpace in memory
+		this->addressSpace = new uint8_t[65536](); // children might not generate actual addressSpace in memory
+		this->addrSpaceSize = 65536;
 	};
 	
-	MemoryMapper(uint32_t addrSpaceSize)
+	MemoryMapper(uint64_t addrSpaceSize)
 	{
-		addressSpace = new char[addrSpaceSize]; // children might not generate actual addressSpace in memory
+		this->addressSpace = new uint8_t[addrSpaceSize](); // children might not generate actual addressSpace in memory
+		this->addrSpaceSize = addrSpaceSize;
 	};
 	
 	virtual ~MemoryMapper()
 	{
-		delete addressSpace;
+		delete[] this->addressSpace;
 	};
 	
-	virtual char read(uint16_t address) { return addressSpace[address]; };
+	virtual uint8_t read(uint16_t address) { return this->addressSpace[address];};
 	
-	virtual char16_t read16(uint16_t address) {
-		return ((addressSpace[address] << 8) | addressSpace[address + 1]);
+	virtual uint16_t read16(uint16_t address) {
+		return ((this->addressSpace[address] << 8) | this->addressSpace[address + 1]);
 	};
 	
 	virtual bool write(uint16_t address, char byte)
 	{
-		if (address > sizeof(addressSpace)) return false;
-		addressSpace[address] = byte;
+		if (address > this->addrSpaceSize) return false;
+		this->addressSpace[address] = byte;
 		return true;
 	};
 
-	virtual bool writeArray(uint16_t startAddress, char* bytes)
+	virtual bool writeArray(uint16_t startAddress,  uint8_t bytes[33], uint16_t programLength)
 	{
-		if (startAddress + sizeof(bytes) > sizeof(addressSpace)) return false; // would cause memory leak
-		for(int i = 0; i<sizeof(bytes); i++)
-		{
-			addressSpace[startAddress + i] = bytes[i];
-		}
+		if (startAddress + programLength > addrSpaceSize) return false; // would cause memory leak
+		
+		for(int i = 0; i < programLength; i++) this->addressSpace[startAddress + i] = bytes[i];
+		
 		return true;
 	};
 };
